@@ -62,15 +62,4 @@ def get_summary(user_id, period="month"):
         summary[category] = summary.get(category, 0) + amount
         total += amount
     return summary, total
-```
-
----
-
-### `requirements.txt` — to'liq kod:
-```
-python-telegram-bot[webhooks]==20.7
-SpeechRecognition==3.10.1
-pydub==0.25.1
-openpyxl==3.1.2
-imageio-ffmpeg
-psycopg2-binary
+    
