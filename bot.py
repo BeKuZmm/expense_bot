@@ -225,6 +225,11 @@ def main():
     app.add_handler(manual_conv)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
+    import asyncio
+    async def delete_webhook():
+        await app.bot.delete_webhook()
+    asyncio.get_event_loop().run_until_complete(delete_webhook())
+
     print("✅ Bot ishga tushdi!")
     app.run_polling()
 
