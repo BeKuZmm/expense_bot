@@ -216,18 +216,13 @@ def main():
         },
         fallbacks=[]
     )
-    app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(voice_conv)
     app.add_handler(manual_conv)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
-    PORT = int(os.environ.get("PORT", 10000))
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        webhook_url=WEBHOOK_URL
-    )
+    print("✅ Bot ishga tushdi!")
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
