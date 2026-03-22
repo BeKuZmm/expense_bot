@@ -3,3 +3,4 @@ SpeechRecognition==3.10.1
 pydub==0.25.1
 openpyxl==3.1.2
 imageio-ffmpeg
+psycopg2-binary
