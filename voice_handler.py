@@ -1,8 +1,10 @@
 import speech_recognition as sr
+import imageio_ffmpeg
 from pydub import AudioSegment
 import os
 import re
 
+AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()
 recognizer = sr.Recognizer()
 
 CATEGORIES = {
