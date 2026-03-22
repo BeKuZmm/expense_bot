@@ -102,6 +102,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
+
     if text == "✅ Ha, to'g'ri":
         pending = context.user_data.get("pending")
         if pending:
@@ -115,14 +116,33 @@ async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"✅ Saqlandi!\n💰 {pending['amount']:,.0f} so'm → {pending['category']}",
                 reply_markup=main_keyboard
             )
-    elif text == "❌ Bekor qilish":
-        await update.message.reply_text("❌ Bekor qilindi.", reply_markup=main_keyboard)
-    else:
-        await update.message.reply_text("✅ yoki ❌ tugmasini bosing.", reply_markup=main_keyboard)
-        return WAIT_CONFIRM
+        context.user_data.pop("pending", None)
+        return ConversationHandler.END
 
-    context.user_data.pop("pending", None)
-    return ConversationHandler.END
+    elif text == "✏️ Tahrirlash":
+        pending = context.user_data.get("pending")
+        await update.message.reply_text(
+            f"💰 Hozirgi miqdor: *{pending['amount']:,.0f} so'm*\n\n"
+            "Yangi miqdorni kiriting:",
+            parse_mode="Markdown"
+        )
+        return WAIT_AMOUNT
+
+    elif text == "❌ Bekor qilish":
+        context.user_data.pop("pending", None)
+        await update.message.reply_text("❌ Bekor qilindi.", reply_markup=main_keyboard)
+        return ConversationHandler.END
+
+    else:
+        confirm_keyboard = ReplyKeyboardMarkup(
+            [["✅ Ha, to'g'ri", "✏️ Tahrirlash"], ["❌ Bekor qilish"]],
+            resize_keyboard=True
+        )
+        await update.message.reply_text(
+            "Iltimos, tugmalardan birini bosing:",
+            reply_markup=confirm_keyboard
+        )
+        return WAIT_CONFIRM
 
 async def manual_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -135,6 +155,11 @@ async def get_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         amount = float(update.message.text.replace(" ", "").replace(",", ""))
         context.user_data["amount"] = amount
+        if "pending" in context.user_data:
+            context.user_data["pending"]["amount"] = amount
+            cat_keyboard = ReplyKeyboardMarkup(CATEGORIES, resize_keyboard=True)
+            await update.message.reply_text("📂 Kategoriyani tanlang:", reply_markup=cat_keyboard)
+            return WAIT_CATEGORY
         cat_keyboard = ReplyKeyboardMarkup(CATEGORIES, resize_keyboard=True)
         await update.message.reply_text("📂 Kategoriyani tanlang:", reply_markup=cat_keyboard)
         return WAIT_CATEGORY
@@ -145,7 +170,13 @@ async def get_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     category = update.message.text
     amount = context.user_data.get("amount", 0)
-    add_expense(update.effective_user.id, amount, category)
+    if "pending" in context.user_data:
+        context.user_data["pending"]["category"] = category
+        pending = context.user_data["pending"]
+        add_expense(update.effective_user.id, pending["amount"], category, pending.get("description", ""))
+        context.user_data.pop("pending", None)
+    else:
+        add_expense(update.effective_user.id, amount, category)
     await update.message.reply_text(
         f"✅ Saqlandi!\n💰 {amount:,.0f} so'm → {category}",
         reply_markup=main_keyboard
@@ -206,7 +237,11 @@ def main():
 
     voice_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.VOICE, handle_voice)],
-        states={WAIT_CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_expense)]},
+        states={
+            WAIT_CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_expense)],
+            WAIT_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_amount)],
+            WAIT_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_category)],
+        },
         fallbacks=[]
     )
 
