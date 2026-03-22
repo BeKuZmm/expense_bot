@@ -1,5 +1,5 @@
 services:
-  - type: worker
+  - type: web
     name: expense-bot
     env: python
     buildCommand: "apt-get install -y ffmpeg && pip install -r requirements.txt"
@@ -7,3 +7,7 @@ services:
     envVars:
       - key: BOT_TOKEN
         sync: false
+      - key: WEBHOOK_URL
+        sync: false
+      - key: PORT
+        value: 10000
