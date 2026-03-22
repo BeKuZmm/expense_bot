@@ -1,15 +1,19 @@
-import sqlite3
+import psycopg2
+import os
 from datetime import datetime
 
-DB_NAME = "expenses.db"
+DB_URL = os.environ.get("DATABASE_URL")
+
+def get_conn():
+    return psycopg2.connect(DB_URL)
 
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_conn()
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS expenses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT NOT NULL,
             amount REAL NOT NULL,
             category TEXT NOT NULL,
             description TEXT,
@@ -20,17 +24,17 @@ def init_db():
     conn.close()
 
 def add_expense(user_id, amount, category, description=""):
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_conn()
     c = conn.cursor()
     c.execute('''
         INSERT INTO expenses (user_id, amount, category, description, date)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
     ''', (user_id, amount, category, description, datetime.now().strftime("%Y-%m-%d %H:%M")))
     conn.commit()
     conn.close()
 
 def get_expenses(user_id, period="month"):
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_conn()
     c = conn.cursor()
     now = datetime.now()
     if period == "month":
@@ -43,7 +47,7 @@ def get_expenses(user_id, period="month"):
     c.execute('''
         SELECT amount, category, description, date
         FROM expenses
-        WHERE user_id = ? AND date >= ?
+        WHERE user_id = %s AND date >= %s
         ORDER BY date DESC
     ''', (user_id, start))
     rows = c.fetchall()
@@ -58,3 +62,15 @@ def get_summary(user_id, period="month"):
         summary[category] = summary.get(category, 0) + amount
         total += amount
     return summary, total
+```
+
+---
+
+### `requirements.txt` — to'liq kod:
+```
+python-telegram-bot[webhooks]==20.7
+SpeechRecognition==3.10.1
+pydub==0.25.1
+openpyxl==3.1.2
+imageio-ffmpeg
+psycopg2-binary
